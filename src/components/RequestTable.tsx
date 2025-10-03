@@ -120,7 +120,7 @@ export const RequestTable = () => {
               Store Name
             </TableHead>
             <TableHead className="font-semibold text-foreground">
-              Error
+              Status
             </TableHead>
             <TableHead className="text-right font-semibold text-foreground">
               Action
