@@ -51,11 +51,42 @@ export const RequestTable = () => {
     fetchRequests();
   }, []);
 
-  const handleRetry = (requestId: string, storeName: string) => {
+  const handleRetry = async (requestId: string) => {
     toast({
-      title: "Retry initiated",
-      description: `Retrying request ${requestId} for ${storeName}`,
+      title: "Retrying Request...",
+      description: `Attempting to retry request ${requestId}.`,
     });
+
+    try {
+      const response = await fetch(
+        "https://n8n.n-compass.online/webhook-test/retry-request",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ requestId }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`API returned with status: ${response.status}`);
+      }
+
+      toast({
+        title: "Retry Successful",
+        description: `Request ${requestId} has been successfully retried.`,
+      });
+    } catch (e) {
+      const errorMessage =
+        e instanceof Error ? e.message : "An unknown error occurred.";
+      toast({
+        title: "Retry Failed",
+        description: `Failed to retry request ${requestId}. Reason: ${errorMessage}`,
+        variant: "destructive",
+      });
+      console.error("Failed to retry request:", e);
+    }
   };
 
   const toTitleCase = (str: string) => {
@@ -127,9 +158,7 @@ export const RequestTable = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() =>
-                      handleRetry(request.request_id, request.store_name)
-                    }
+                    onClick={() => handleRetry(request.request_id)}
                     className="gap-2"
                   >
                     <RotateCw className="h-4 w-4" />
