@@ -22,8 +22,7 @@ export const RequestTable = () => {
   const [requests, setRequests] = useState<RequestData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
-  const [successIds, setSuccessIds] = useState<Set<string>>(new Set());
+  const [retryingIds, setRetryingIds] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -53,12 +52,8 @@ export const RequestTable = () => {
     fetchRequests();
   }, []);
 
-  const handleRetry = async (requestId: string) => {
-    setRetryingIds((prev) => new Set(prev).add(requestId));
-    toast({
-      title: "Retrying Request...",
-      description: `Attempting to retry request ${requestId}.`,
-    });
+  const handleRetry = async (requestId: string, storeName: string) => {
+    setRetryingIds((prev) => [...prev, requestId]);
 
     try {
       const response = await fetch(
@@ -68,48 +63,42 @@ export const RequestTable = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ requestId }),
+          body: JSON.stringify({ request_id: requestId }),
         },
       );
 
       if (!response.ok) {
-        throw new Error(`API returned with status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      setRetryingIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(requestId);
-        return newSet;
-      });
-      setSuccessIds((prev) => new Set(prev).add(requestId));
+      const result = await response.json();
 
-      toast({
-        title: "Retry Successful",
-        description: `Request ${requestId} has been successfully retried.`,
-      });
+      if (result.success) {
+        toast({
+          title: "Retry Successful",
+          description: `Request for ${storeName} has been successfully retried.`,
+        });
+      } else {
+        throw new Error("API responded with success: false.");
+      }
     } catch (e) {
-      setRetryingIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(requestId);
-        return newSet;
-      });
-      const errorMessage =
-        e instanceof Error ? e.message : "An unknown error occurred.";
+      console.error("Failed to retry request:", e);
+      const errorMessage = e instanceof Error ? e.message : "Unknown error";
       toast({
         title: "Retry Failed",
-        description: `Failed to retry request ${requestId}. Reason: ${errorMessage}`,
+        description: `Failed to retry request for ${storeName}. Reason: ${errorMessage}`,
         variant: "destructive",
       });
-      console.error("Failed to retry request:", e);
+    } finally {
+      setRetryingIds((prev) => prev.filter((id) => id !== requestId));
     }
   };
 
   const toTitleCase = (str: string) => {
     if (!str) return "";
     return str
-      .toLowerCase()
-      .split(/[\s_]+/)
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .split(/[\s_-]+/)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(" ");
   };
 
@@ -173,18 +162,20 @@ export const RequestTable = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleRetry(request.request_id)}
-                    disabled={retryingIds.has(request.request_id) || successIds.has(request.request_id)}
+                    onClick={() =>
+                      handleRetry(request.request_id, request.store_name)
+                    }
+                    disabled={retryingIds.includes(request.request_id)}
                     className="gap-2"
                   >
-                    {successIds.has(request.request_id) ? (
-                      <span className="text-green-600 dark:text-green-400 font-semibold">Success</span>
+                    {retryingIds.includes(request.request_id) ? (
+                      <RotateCw className="h-4 w-4 animate-spin" />
                     ) : (
-                      <>
-                        <RotateCw className={`h-4 w-4 ${retryingIds.has(request.request_id) ? 'animate-spin' : ''}`} />
-                        {retryingIds.has(request.request_id) ? 'Retrying...' : 'Retry'}
-                      </>
+                      <RotateCw className="h-4 w-4" />
                     )}
+                    {retryingIds.includes(request.request_id)
+                      ? "Retrying..."
+                      : "Retry"}
                   </Button>
                 </TableCell>
               </TableRow>
