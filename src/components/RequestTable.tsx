@@ -18,11 +18,15 @@ interface RequestData {
   error_notes: string;
 }
 
+type RequestStatus = "Failed" | "Retrying" | "Retry Successful";
+
 export const RequestTable = () => {
   const [requests, setRequests] = useState<RequestData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [retryingIds, setRetryingIds] = useState<string[]>([]);
+  const [requestStatuses, setRequestStatuses] = useState<{
+    [key: string]: RequestStatus;
+  }>({});
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -36,6 +40,15 @@ export const RequestTable = () => {
         }
         const data = await response.json();
         setRequests(data);
+
+        const initialStatuses = data.reduce(
+          (acc: { [key: string]: RequestStatus }, request: RequestData) => {
+            acc[request.request_id] = "Failed";
+            return acc;
+          },
+          {},
+        );
+        setRequestStatuses(initialStatuses);
         setError(null);
       } catch (e) {
         if (e instanceof Error) {
@@ -53,7 +66,7 @@ export const RequestTable = () => {
   }, []);
 
   const handleRetry = async (requestId: string, storeName: string) => {
-    setRetryingIds((prev) => [...prev, requestId]);
+    setRequestStatuses((prev) => ({ ...prev, [requestId]: "Retrying" }));
 
     try {
       const response = await fetch(
@@ -78,6 +91,10 @@ export const RequestTable = () => {
           title: "Retry Successful",
           description: `Request for ${storeName} has been successfully retried.`,
         });
+        setRequestStatuses((prev) => ({
+          ...prev,
+          [requestId]: "Retry Successful",
+        }));
       } else {
         throw new Error(
           `API returned an unexpected response: ${JSON.stringify(result)}`,
@@ -92,8 +109,7 @@ export const RequestTable = () => {
         description: `Failed to retry request for ${storeName}. Reason: ${errorMessage}`,
         variant: "destructive",
       });
-    } finally {
-      setRetryingIds((prev) => prev.filter((id) => id !== requestId));
+      setRequestStatuses((prev) => ({ ...prev, [requestId]: "Failed" }));
     }
   };
 
@@ -103,6 +119,19 @@ export const RequestTable = () => {
       .split(/[\s_-]+/)
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(" ");
+  };
+
+  const getStatusColor = (status: RequestStatus | undefined) => {
+    switch (status) {
+      case "Retry Successful":
+        return "text-green-500";
+      case "Retrying":
+        return "text-yellow-500";
+      case "Failed":
+        return "text-red-500";
+      default:
+        return "text-foreground";
+    }
   };
 
   return (
@@ -120,6 +149,9 @@ export const RequestTable = () => {
               Store Name
             </TableHead>
             <TableHead className="font-semibold text-foreground">
+              Error
+            </TableHead>
+            <TableHead className="font-semibold text-foreground">
               Status
             </TableHead>
             <TableHead className="text-right font-semibold text-foreground">
@@ -131,7 +163,7 @@ export const RequestTable = () => {
           {isLoading ? (
             <TableRow>
               <TableCell
-                colSpan={5}
+                colSpan={6}
                 className="text-center text-muted-foreground"
               >
                 Loading failed requests...
@@ -139,54 +171,63 @@ export const RequestTable = () => {
             </TableRow>
           ) : error ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center text-destructive">
+              <TableCell colSpan={6} className="text-center text-destructive">
                 Error loading data: {error}
               </TableCell>
             </TableRow>
           ) : requests.length > 0 ? (
-            requests.map((request) => (
-              <TableRow
-                key={request.request_id}
-                className="border-border hover:bg-muted/50 transition-colors"
-              >
-                <TableCell className="font-medium text-foreground">
-                  {request.date}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {request.request_id}
-                </TableCell>
-                <TableCell className="text-foreground">
-                  {request.store_name}
-                </TableCell>
-                <TableCell className="text-red-500">
-                  {toPascalCase(request.error_notes)}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      handleRetry(request.request_id, request.store_name)
-                    }
-                    disabled={retryingIds.includes(request.request_id)}
-                    className="gap-2"
+            requests.map((request) => {
+              const status = requestStatuses[request.request_id];
+              const isRetrying = status === "Retrying";
+              const isSuccessful = status === "Retry Successful";
+
+              return (
+                <TableRow
+                  key={request.request_id}
+                  className="border-border hover:bg-muted/50 transition-colors"
+                >
+                  <TableCell className="font-medium text-foreground">
+                    {request.date}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {request.request_id}
+                  </TableCell>
+                  <TableCell className="text-foreground">
+                    {request.store_name}
+                  </TableCell>
+                  <TableCell className="text-red-500">
+                    {toPascalCase(request.error_notes)}
+                  </TableCell>
+                  <TableCell
+                    className={`font-medium ${getStatusColor(status)}`}
                   >
-                    {retryingIds.includes(request.request_id) ? (
-                      <RotateCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RotateCw className="h-4 w-4" />
-                    )}
-                    {retryingIds.includes(request.request_id)
-                      ? "Retrying..."
-                      : "Retry"}
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))
+                    {status}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        handleRetry(request.request_id, request.store_name)
+                      }
+                      disabled={isRetrying || isSuccessful}
+                      className="gap-2"
+                    >
+                      {isRetrying ? (
+                        <RotateCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RotateCw className="h-4 w-4" />
+                      )}
+                      {isRetrying ? "Retrying..." : "Retry"}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })
           ) : (
             <TableRow>
               <TableCell
-                colSpan={5}
+                colSpan={6}
                 className="text-center text-muted-foreground"
               >
                 No failed requests found.
