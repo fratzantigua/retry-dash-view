@@ -15,6 +15,7 @@ interface RequestData {
   request_id: string;
   store_name: string;
   date: string;
+  error_notes: string;
 }
 
 export const RequestTable = () => {
@@ -71,6 +72,9 @@ export const RequestTable = () => {
             <TableHead className="font-semibold text-foreground">
               Store Name
             </TableHead>
+            <TableHead className="font-semibold text-foreground">
+              Error
+            </TableHead>
             <TableHead className="text-right font-semibold text-foreground">
               Action
             </TableHead>
@@ -80,7 +84,7 @@ export const RequestTable = () => {
           {isLoading ? (
             <TableRow>
               <TableCell
-                colSpan={4}
+                colSpan={5}
                 className="text-center text-muted-foreground"
               >
                 Loading failed requests...
@@ -88,7 +92,7 @@ export const RequestTable = () => {
             </TableRow>
           ) : error ? (
             <TableRow>
-              <TableCell colSpan={4} className="text-center text-destructive">
+              <TableCell colSpan={5} className="text-center text-destructive">
                 Error loading data: {error}
               </TableCell>
             </TableRow>
@@ -106,6 +110,9 @@ export const RequestTable = () => {
                 </TableCell>
                 <TableCell className="text-foreground">
                   {request.store_name}
+                </TableCell>
+                <TableCell className="text-foreground">
+                  {request.error_notes}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button
@@ -125,7 +132,7 @@ export const RequestTable = () => {
           ) : (
             <TableRow>
               <TableCell
-                colSpan={4}
+                colSpan={5}
                 className="text-center text-muted-foreground"
               >
                 No failed requests found.
