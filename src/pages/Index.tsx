@@ -16,8 +16,12 @@ const Index = () => {
       <div className="max-w-5xl mx-auto">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Request Management</h1>
-            <p className="text-muted-foreground">View and manage all store requests</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Flyer Request Failure Management
+            </h1>
+            <p className="text-muted-foreground">
+              View and manage all flyer requests that have failed.
+            </p>
           </div>
           <Button onClick={handleRetryAll} className="gap-2">
             <RotateCw className="h-4 w-4" />
