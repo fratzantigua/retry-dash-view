@@ -73,17 +73,20 @@ export const RequestTable = () => {
 
       const result = await response.json();
 
-      if (result.success) {
+      if (result.response === "success") {
         toast({
           title: "Retry Successful",
           description: `Request for ${storeName} has been successfully retried.`,
         });
       } else {
-        throw new Error("API responded with success: false.");
+        throw new Error(
+          `API returned an unexpected response: ${JSON.stringify(result)}`,
+        );
       }
     } catch (e) {
+      const errorMessage =
+        e instanceof Error ? e.message : "An unknown error occurred.";
       console.error("Failed to retry request:", e);
-      const errorMessage = e instanceof Error ? e.message : "Unknown error";
       toast({
         title: "Retry Failed",
         description: `Failed to retry request for ${storeName}. Reason: ${errorMessage}`,
@@ -94,7 +97,7 @@ export const RequestTable = () => {
     }
   };
 
-  const toTitleCase = (str: string) => {
+  const toPascalCase = (str: string) => {
     if (!str) return "";
     return str
       .split(/[\s_-]+/)
@@ -156,7 +159,7 @@ export const RequestTable = () => {
                   {request.store_name}
                 </TableCell>
                 <TableCell className="text-red-500">
-                  {toTitleCase(request.error_notes)}
+                  {toPascalCase(request.error_notes)}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button
