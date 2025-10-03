@@ -58,15 +58,13 @@ export const RequestTable = () => {
     });
   };
 
-  const toCamelCase = (text: string) => {
-    if (!text) return "";
-    const words = text.toLowerCase().split(/[\s_]+/);
-    return words
-      .map((word, index) => {
-        if (index === 0) return word;
-        return word.charAt(0).toUpperCase() + word.slice(1);
-      })
-      .join("");
+  const toTitleCase = (str: string) => {
+    if (!str) return "";
+    return str
+      .toLowerCase()
+      .split(/[\s_]+/)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   };
 
   return (
@@ -122,8 +120,8 @@ export const RequestTable = () => {
                 <TableCell className="text-foreground">
                   {request.store_name}
                 </TableCell>
-                <TableCell className="text-red-500 font-medium">
-                  {toCamelCase(request.error_notes)}
+                <TableCell className="text-red-500">
+                  {toTitleCase(request.error_notes)}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button
