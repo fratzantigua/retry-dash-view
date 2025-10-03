@@ -66,7 +66,7 @@ export const RequestTable = () => {
   };
 
   return (
-    <div className="w-full rounded-lg border border-border bg-card shadow-sm">
+    <div className="w-full rounded-lg border border-border bg-card shadow-lg backdrop-blur-sm">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent border-border">

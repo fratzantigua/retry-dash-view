@@ -12,7 +12,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4">
+    <div className="min-h-screen py-12 px-4">
       <div className="max-w-5xl mx-auto">
         <div className="mb-8 flex items-center justify-between">
           <div>
