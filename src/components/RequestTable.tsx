@@ -27,7 +27,7 @@ export const RequestTable = () => {
       try {
         setIsLoading(true);
         const response = await fetch(
-          "https://n8n.n-compass.online/webhook-test/requests-api-error",
+          "https://n8n.n-compass.online/webhook/requests-api-error",
         );
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
