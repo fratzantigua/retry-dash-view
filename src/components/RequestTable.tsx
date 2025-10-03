@@ -58,6 +58,13 @@ export const RequestTable = () => {
     });
   };
 
+  const handleRetryAll = () => {
+    toast({
+      title: "Retry all initiated",
+      description: `Retrying all ${sampleData.length} requests`,
+    });
+  };
+
   return (
     <div className="w-full rounded-lg border border-border bg-card shadow-sm">
       <Table>
