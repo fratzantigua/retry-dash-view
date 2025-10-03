@@ -22,6 +22,8 @@ export const RequestTable = () => {
   const [requests, setRequests] = useState<RequestData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
+  const [successIds, setSuccessIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -52,6 +54,7 @@ export const RequestTable = () => {
   }, []);
 
   const handleRetry = async (requestId: string) => {
+    setRetryingIds((prev) => new Set(prev).add(requestId));
     toast({
       title: "Retrying Request...",
       description: `Attempting to retry request ${requestId}.`,
@@ -73,11 +76,23 @@ export const RequestTable = () => {
         throw new Error(`API returned with status: ${response.status}`);
       }
 
+      setRetryingIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(requestId);
+        return newSet;
+      });
+      setSuccessIds((prev) => new Set(prev).add(requestId));
+
       toast({
         title: "Retry Successful",
         description: `Request ${requestId} has been successfully retried.`,
       });
     } catch (e) {
+      setRetryingIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(requestId);
+        return newSet;
+      });
       const errorMessage =
         e instanceof Error ? e.message : "An unknown error occurred.";
       toast({
@@ -159,10 +174,17 @@ export const RequestTable = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => handleRetry(request.request_id)}
+                    disabled={retryingIds.has(request.request_id) || successIds.has(request.request_id)}
                     className="gap-2"
                   >
-                    <RotateCw className="h-4 w-4" />
-                    Retry
+                    {successIds.has(request.request_id) ? (
+                      <span className="text-green-600 dark:text-green-400 font-semibold">Success</span>
+                    ) : (
+                      <>
+                        <RotateCw className={`h-4 w-4 ${retryingIds.has(request.request_id) ? 'animate-spin' : ''}`} />
+                        {retryingIds.has(request.request_id) ? 'Retrying...' : 'Retry'}
+                      </>
+                    )}
                   </Button>
                 </TableCell>
               </TableRow>
