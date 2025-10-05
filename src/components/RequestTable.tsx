@@ -18,7 +18,7 @@ interface RequestData {
   error_notes: string;
 }
 
-type RequestStatus = "Failed" | "Retrying" | "Retry Successful";
+type RequestStatus = "Pending" | "Failed" | "Retrying" | "Retry Successful";
 
 export const RequestTable = () => {
   const [requests, setRequests] = useState<RequestData[]>([]);
@@ -43,7 +43,7 @@ export const RequestTable = () => {
 
         const initialStatuses = data.reduce(
           (acc: { [key: string]: RequestStatus }, request: RequestData) => {
-            acc[request.request_id] = "Failed";
+            acc[request.request_id] = "Pending";
             return acc;
           },
           {},
@@ -127,6 +127,8 @@ export const RequestTable = () => {
         return "text-green-500";
       case "Retrying":
         return "text-yellow-500";
+      case "Pending":
+        return "text-blue-500";
       case "Failed":
         return "text-red-500";
       default:
