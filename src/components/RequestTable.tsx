@@ -70,7 +70,7 @@ export const RequestTable = () => {
 
     try {
       const response = await fetch(
-        "https://n8n.n-compass.online/webhook-test/retry-request",
+        "https://n8n.n-compass.online/webhook/retry-request",
         {
           method: "POST",
           headers: {
