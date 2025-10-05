@@ -211,7 +211,7 @@ export const RequestTable = () => {
                         handleRetry(request.request_id, request.store_name)
                       }
                       disabled={isRetrying || isSuccessful}
-                      className="gap-2"
+                      className="gap-2 float-left"
                     >
                       {isRetrying ? (
                         <RotateCw className="h-4 w-4 animate-spin" />
