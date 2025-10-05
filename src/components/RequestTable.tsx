@@ -154,7 +154,7 @@ export const RequestTable = () => {
             <TableHead className="font-semibold text-foreground">
               Status
             </TableHead>
-            <TableHead className="text-right font-semibold text-foreground">
+            <TableHead className="text-left font-semibold text-foreground">
               Action
             </TableHead>
           </TableRow>

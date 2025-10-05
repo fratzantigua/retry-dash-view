@@ -23,7 +23,7 @@ const Index = () => {
               View and manage all flyer requests that have failed.
             </p>
           </div>
-          <Button onClick={handleRetryAll} className="gap-2">
+          <Button onClick={handleRetryAll} className="gap-2 float-left">
             <RotateCw className="h-4 w-4" />
             Retry All
           </Button>
