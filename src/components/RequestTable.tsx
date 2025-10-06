@@ -9,7 +9,13 @@ import {
 } from "@/components/ui/table";
 import { RotateCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { useCallback, useEffect, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from "react";
 
 interface RequestData {
   request_id: string;
@@ -179,58 +185,8 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
     }
   };
 
-  const handleRetryAll = async () => {
-    setIsRetryingAll(true);
-    try {
-      const response = await fetch(
-        "https://n8n.n-compass.online/webhook/retry-all-request",
-        {
-          method: "POST",
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      toast({
-        title: "Retry All Successful",
-        description:
-          "All failed requests have been successfully queued for retry.",
-      });
-      await fetchRequests();
-    } catch (e) {
-      const errorMessage =
-        e instanceof Error ? e.message : "An unknown error occurred.";
-      console.error("Failed to retry all requests:", e);
-      toast({
-        title: "Retry All Failed",
-        description: `Failed to retry all requests. Reason: ${errorMessage}`,
-        variant: "destructive",
-      });
-    } finally {
-      setIsRetryingAll(false);
-    }
-  });
-
   return (
     <div className="w-full rounded-lg border border-border bg-card shadow-lg backdrop-blur-sm">
-      <div className="flex justify-end border-b border-border p-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRetryAll}
-          disabled={isRetryingAll || requests.length === 0}
-          className="gap-2"
-        >
-          {isRetryingAll ? (
-            <RotateCw className="h-4 w-4 animate-spin" />
-          ) : (
-            <RotateCw className="h-4 w-4" />
-          )}
-          {isRetryingAll ? "Retrying All..." : "Retry All"}
-        </Button>
-      </div>
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent border-border">
@@ -333,4 +289,4 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
       </Table>
     </div>
   );
-};
+});
