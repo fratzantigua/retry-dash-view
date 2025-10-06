@@ -16,6 +16,7 @@ import {
   useImperativeHandle,
   useState,
 } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 interface RequestData {
   request_id: string;
@@ -76,8 +77,61 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
     fetchRequests();
   }, [fetchRequests]);
 
+  useEffect(() => {
+    // Don't subscribe until the initial data is loaded and there are requests
+    if (!requests.length) return;
+
+    const requestIds = requests.map((r) => r.request_id);
+
+    const channel = supabase
+      .channel("request-status-updates")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "requests",
+          filter: `request_id=in.(${requestIds.join(",")})`,
+        },
+        (payload) => {
+          const { new: newRecord } = payload;
+          if (newRecord && newRecord.request_id && newRecord.status) {
+            // Map 'Exporting' or 'success' to 'Retry Successful'
+            const newStatusValue = newRecord.status;
+            const newStatus: RequestStatus =
+              newStatusValue === "success" || newStatusValue === "Exporting"
+                ? "Retry Successful"
+                : "Failed";
+
+            setRequestStatuses((prev) => ({
+              ...prev,
+              [newRecord.request_id]: newStatus,
+            }));
+          }
+        },
+      )
+      .subscribe();
+
+    // Cleanup function to remove the subscription when the component unmounts
+    // or when the list of requests changes
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [requests]);
+
   const handleRetryAll = async () => {
     setIsRetryingAll(true);
+
+    // Immediately update UI to show "Retrying" for all requests
+    const retryingStatuses = requests.reduce(
+      (acc: { [key: string]: RequestStatus }, request) => {
+        acc[request.request_id] = "Retrying";
+        return acc;
+      },
+      {},
+    );
+    setRequestStatuses(retryingStatuses);
+
     try {
       const response = await fetch(
         "https://n8n.n-compass.online/webhook/retry-all-request",
@@ -91,11 +145,10 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
       }
 
       toast({
-        title: "Retry All Successful",
-        description:
-          "All failed requests have been successfully queued for retry.",
+        title: "Retry All Initiated",
+        description: "All requests queued. Watching for live status updates.",
       });
-      await fetchRequests();
+      // We no longer call fetchRequests(). The real-time listener will handle updates.
     } catch (e) {
       const errorMessage =
         e instanceof Error ? e.message : "An unknown error occurred.";
@@ -105,6 +158,8 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
         description: `Failed to retry all requests. Reason: ${errorMessage}`,
         variant: "destructive",
       });
+      // On failure, revert back to the original state
+      await fetchRequests();
     } finally {
       setIsRetryingAll(false);
     }
