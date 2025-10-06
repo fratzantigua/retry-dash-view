@@ -186,7 +186,7 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
   };
 
   return (
-    <div className="w-full rounded-lg border border-border bg-card shadow-lg backdrop-blur-sm">
+    <div className="w-full rounded-lg border border-border bg-card shadow-lg backdrop-blur-sm animate-fade-in">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent border-border">

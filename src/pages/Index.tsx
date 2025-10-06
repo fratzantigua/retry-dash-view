@@ -1,13 +1,16 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { RequestTable, type RequestTableRef } from "@/components/RequestTable";
 import { Button } from "@/components/ui/button";
 import { RotateCw } from "lucide-react";
 
 const Index = () => {
   const requestTableRef = useRef<RequestTableRef>(null);
+  const [isRetryingAll, setIsRetryingAll] = useState(false);
 
-  const handleRetryAll = () => {
-    requestTableRef.current?.handleRetryAll();
+  const handleRetryAll = async () => {
+    setIsRetryingAll(true);
+    await requestTableRef.current?.handleRetryAll();
+    setIsRetryingAll(false);
   };
 
   return (
@@ -22,9 +25,9 @@ const Index = () => {
               View and manage all flyer requests that have failed.
             </p>
           </div>
-          <Button onClick={handleRetryAll} className="gap-2 float-left">
-            <RotateCw className="h-4 w-4" />
-            Retry All
+          <Button onClick={handleRetryAll} disabled={isRetryingAll} className="gap-2 float-left">
+            <RotateCw className={`h-4 w-4 ${isRetryingAll ? 'animate-spin' : ''}`} />
+            {isRetryingAll ? "Retrying All..." : "Retry All"}
           </Button>
         </div>
         <RequestTable ref={requestTableRef} />
