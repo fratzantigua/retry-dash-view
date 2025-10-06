@@ -16,7 +16,7 @@ import {
   useImperativeHandle,
   useState,
 } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RequestData {
   request_id: string;
