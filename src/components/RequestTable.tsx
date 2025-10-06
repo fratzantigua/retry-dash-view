@@ -94,6 +94,7 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
           filter: `request_id=in.(${requestIds.join(",")})`,
         },
         (payload) => {
+          console.log("Real-time update received!");
           const { new: newRecord } = payload;
           if (newRecord && newRecord.request_id && newRecord.status) {
             // Map 'Exporting' or 'success' to 'Retry Successful'
