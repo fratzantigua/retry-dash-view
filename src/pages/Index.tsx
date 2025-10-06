@@ -1,14 +1,13 @@
-import { RequestTable } from "@/components/RequestTable";
+import { useRef } from "react";
+import { RequestTable, type RequestTableRef } from "@/components/RequestTable";
 import { Button } from "@/components/ui/button";
 import { RotateCw } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
 
 const Index = () => {
+  const requestTableRef = useRef<RequestTableRef>(null);
+
   const handleRetryAll = () => {
-    toast({
-      title: "Retry all initiated",
-      description: "Retrying all requests",
-    });
+    requestTableRef.current?.handleRetryAll();
   };
 
   return (
@@ -28,7 +27,7 @@ const Index = () => {
             Retry All
           </Button>
         </div>
-        <RequestTable />
+        <RequestTable ref={requestTableRef} />
       </div>
     </div>
   );

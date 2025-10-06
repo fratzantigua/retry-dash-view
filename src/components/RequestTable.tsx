@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { RotateCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface RequestData {
   request_id: string;
@@ -20,50 +20,93 @@ interface RequestData {
 
 type RequestStatus = "Pending" | "Failed" | "Retrying" | "Retry Successful";
 
-export const RequestTable = () => {
+export type RequestTableRef = {
+  handleRetryAll: () => void;
+};
+
+export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
   const [requests, setRequests] = useState<RequestData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRetryingAll, setIsRetryingAll] = useState(false);
   const [requestStatuses, setRequestStatuses] = useState<{
     [key: string]: RequestStatus;
   }>({});
 
-  useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch(
-          "https://n8n.n-compass.online/webhook/requests-api-error",
-        );
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        setRequests(data);
-
-        const initialStatuses = data.reduce(
-          (acc: { [key: string]: RequestStatus }, request: RequestData) => {
-            acc[request.request_id] = "Pending";
-            return acc;
-          },
-          {},
-        );
-        setRequestStatuses(initialStatuses);
-        setError(null);
-      } catch (e) {
-        if (e instanceof Error) {
-          setError(e.message);
-        } else {
-          setError("An unexpected error occurred.");
-        }
-        console.error("Failed to fetch requests:", e);
-      } finally {
-        setIsLoading(false);
+  const fetchRequests = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(
+        "https://n8n.n-compass.online/webhook/requests-api-error",
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
+      const data = await response.json();
+      setRequests(data);
 
-    fetchRequests();
+      const initialStatuses = data.reduce(
+        (acc: { [key: string]: RequestStatus }, request: RequestData) => {
+          acc[request.request_id] = "Pending";
+          return acc;
+        },
+        {},
+      );
+      setRequestStatuses(initialStatuses);
+      setError(null);
+    } catch (e) {
+      if (e instanceof Error) {
+        setError(e.message);
+      } else {
+        setError("An unexpected error occurred.");
+      }
+      console.error("Failed to fetch requests:", e);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+
+  const handleRetryAll = async () => {
+    setIsRetryingAll(true);
+    try {
+      const response = await fetch(
+        "https://n8n.n-compass.online/webhook/retry-all-request",
+        {
+          method: "POST",
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      toast({
+        title: "Retry All Successful",
+        description:
+          "All failed requests have been successfully queued for retry.",
+      });
+      await fetchRequests();
+    } catch (e) {
+      const errorMessage =
+        e instanceof Error ? e.message : "An unknown error occurred.";
+      console.error("Failed to retry all requests:", e);
+      toast({
+        title: "Retry All Failed",
+        description: `Failed to retry all requests. Reason: ${errorMessage}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsRetryingAll(false);
+    }
+  };
+
+  useImperativeHandle(ref, () => ({
+    handleRetryAll,
+  }));
 
   const handleRetry = async (requestId: string, storeName: string) => {
     setRequestStatuses((prev) => ({ ...prev, [requestId]: "Retrying" }));
@@ -136,8 +179,58 @@ export const RequestTable = () => {
     }
   };
 
+  const handleRetryAll = async () => {
+    setIsRetryingAll(true);
+    try {
+      const response = await fetch(
+        "https://n8n.n-compass.online/webhook/retry-all-request",
+        {
+          method: "POST",
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      toast({
+        title: "Retry All Successful",
+        description:
+          "All failed requests have been successfully queued for retry.",
+      });
+      await fetchRequests();
+    } catch (e) {
+      const errorMessage =
+        e instanceof Error ? e.message : "An unknown error occurred.";
+      console.error("Failed to retry all requests:", e);
+      toast({
+        title: "Retry All Failed",
+        description: `Failed to retry all requests. Reason: ${errorMessage}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsRetryingAll(false);
+    }
+  });
+
   return (
     <div className="w-full rounded-lg border border-border bg-card shadow-lg backdrop-blur-sm">
+      <div className="flex justify-end border-b border-border p-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRetryAll}
+          disabled={isRetryingAll || requests.length === 0}
+          className="gap-2"
+        >
+          {isRetryingAll ? (
+            <RotateCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <RotateCw className="h-4 w-4" />
+          )}
+          {isRetryingAll ? "Retrying All..." : "Retry All"}
+        </Button>
+      </div>
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent border-border">
