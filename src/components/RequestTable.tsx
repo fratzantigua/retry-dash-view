@@ -23,9 +23,21 @@ interface RequestData {
   store_name: string;
   date: string;
   error_notes: string;
+  status: string; // This field must exist in the fetched data
 }
 
 type RequestStatus = "Pending" | "Failed" | "Retrying" | "Retry Successful";
+
+// Helper function to determine UI status from request data
+const getStatusFromRequest = (request: Partial<RequestData>): RequestStatus => {
+  if (request.status === "error" && request.error_notes === "api retry fail") {
+    return "Failed";
+  }
+  if (request.status === "success" || request.status === "Exporting") {
+    return "Retry Successful";
+  }
+  return "Pending"; // Default status
+};
 
 export type RequestTableRef = {
   handleRetryAll: () => void;
@@ -54,7 +66,7 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
 
       const initialStatuses = data.reduce(
         (acc: { [key: string]: RequestStatus }, request: RequestData) => {
-          acc[request.request_id] = "Pending";
+          acc[request.request_id] = getStatusFromRequest(request);
           return acc;
         },
         {},
@@ -96,16 +108,9 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
         (payload) => {
           console.log("Real-time update received!", payload);
 
-          const newRecord = payload.new;
-          if (newRecord?.request_id && newRecord?.status) {
-            const newStatusValue = newRecord.status;
-
-            // Map 'Exporting' or 'success' to 'Retry Successful'
-            const newStatus: RequestStatus =
-              newStatusValue === "success" || newStatusValue === "Exporting"
-                ? "Retry Successful"
-                : "Failed";
-
+          const newRecord = payload.new as RequestData;
+          if (newRecord?.request_id) {
+            const newStatus = getStatusFromRequest(newRecord);
             setRequestStatuses((prev) => ({
               ...prev,
               [newRecord.request_id]: newStatus,
