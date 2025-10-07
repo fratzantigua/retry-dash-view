@@ -104,7 +104,6 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
           event: "UPDATE",
           schema: "public",
           table: "requests",
-          filter: `request_id=in.(${requestIds.map((id) => `'${id}'`).join(",")})`,
         },
         (payload) => {
           console.log("Real-time update received!", payload);
