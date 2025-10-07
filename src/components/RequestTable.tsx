@@ -33,23 +33,24 @@ const getStatusFromRequest = (
   request: Partial<RequestData>,
   currentStatus?: RequestStatus,
 ): RequestStatus => {
-  let newStatus: RequestStatus = "Pending";
-  if (
-    request.status === "error" &&
-    (request.error_notes === "api retry fail" ||
-      request.error_notes === "api sent fail")
-  ) {
-    newStatus = "Failed";
+  let calculatedStatus: RequestStatus = "Pending";
+  if (request.status === "error") {
+    calculatedStatus = "Failed";
   } else if (request.status === "success" || request.status === "Exporting") {
-    newStatus = "Retry Successful";
+    calculatedStatus = "Retry Successful";
   }
 
-  // Do not override "Retrying" status with "Pending"
-  if (currentStatus === "Retrying" && newStatus === "Pending") {
+  // Do not override "Retrying" status with an ambiguous real-time update
+  if (currentStatus === "Retrying" && calculatedStatus === "Pending") {
     return "Retrying";
   }
 
-  return newStatus;
+  // "Pending" is only for initial load. For real-time updates, ambiguous statuses default to "Failed".
+  if (currentStatus && calculatedStatus === "Pending") {
+    return "Failed";
+  }
+
+  return calculatedStatus;
 };
 
 export type RequestTableRef = {
