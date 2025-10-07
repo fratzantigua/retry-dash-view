@@ -144,8 +144,7 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
               const requestToAdd = {
                 ...updatedRequest,
                 date:
-                  updatedRequest.date ||
-                  new Date().toLocaleString().split(",")[0],
+                  updatedRequest.date || new Date().toISOString().split("T")[0],
               };
               // Add the request to the table display
               setRequests((currentRequests) => [
