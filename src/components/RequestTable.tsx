@@ -343,7 +343,7 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
               return (
                 <TableRow
                   key={request.request_id}
-                  className="border-border hover:bg-muted/50 transition-colors"
+                  className="border-border hover:bg-muted/50 transition-colors animate-fade-in"
                 >
                   <TableCell className="font-medium text-foreground">
                     {request.date}
