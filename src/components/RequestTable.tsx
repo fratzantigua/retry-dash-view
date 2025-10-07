@@ -29,14 +29,23 @@ interface RequestData {
 type RequestStatus = "Pending" | "Failed" | "Retrying" | "Retry Successful";
 
 // Helper function to determine UI status from request data
-const getStatusFromRequest = (request: Partial<RequestData>): RequestStatus => {
+const getStatusFromRequest = (
+  request: Partial<RequestData>,
+  currentStatus?: RequestStatus,
+): RequestStatus => {
+  let newStatus: RequestStatus = "Pending";
   if (request.status === "error" && request.error_notes === "api retry fail") {
-    return "Failed";
+    newStatus = "Failed";
+  } else if (request.status === "success" || request.status === "Exporting") {
+    newStatus = "Retry Successful";
   }
-  if (request.status === "success" || request.status === "Exporting") {
-    return "Retry Successful";
+
+  // Do not override "Retrying" status with "Pending"
+  if (currentStatus === "Retrying" && newStatus === "Pending") {
+    return "Retrying";
   }
-  return "Pending"; // Default status
+
+  return newStatus;
 };
 
 export type RequestTableRef = {
@@ -114,7 +123,10 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
 
           setRequestStatuses((prev) => ({
             ...prev,
-            [req.request_id]: getStatusFromRequest(newRequestData),
+            [req.request_id]: getStatusFromRequest(
+              newRequestData,
+              prev[req.request_id],
+            ),
           }));
         },
       );
