@@ -91,44 +91,45 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
   }, [fetchRequests]);
 
   useEffect(() => {
-    // Don't subscribe until the initial data is loaded and there are requests
     if (!requests.length) return;
 
     const requestIds = requests.map((r) => r.request_id);
+    const channel = supabase.channel("request-status-updates");
 
-    const channel = supabase
-      .channel("request-status-updates")
-      .on(
+    requestIds.forEach((id) => {
+      channel.on(
         "postgres_changes",
         {
           event: "UPDATE",
           schema: "public",
           table: "requests",
-          filter: `request_id=in.(${requestIds.join(",")})`,
+          filter: `request_id=eq.${id}`,
         },
         (payload) => {
-          console.log("Real-time update received!", payload);
+          console.log("🔔 Real-time update received:", payload);
 
           const newRecord = payload.new;
           if (newRecord?.request_id) {
             const newStatus = getStatusFromRequest(newRecord);
             console.log(
-              `Request ${newRecord.request_id} status updated to: ${newStatus}`,
+              `Request ${newRecord.request_id} → new status: ${newStatus}`,
             );
+
             setRequestStatuses((prev) => ({
               ...prev,
               [newRecord.request_id]: newStatus,
             }));
           }
         },
-      )
-      .subscribe((status) =>
-        console.log("Realtime subscription status:", status),
       );
+    });
 
-    // Cleanup function to remove the subscription when the component unmounts
-    // or when the list of requests changes
+    channel.subscribe((status) => {
+      console.log("Realtime subscription status:", status);
+    });
+
     return () => {
+      console.log("🧹 Cleaning up Realtime channel...");
       supabase.removeChannel(channel);
     };
   }, [requests]);
