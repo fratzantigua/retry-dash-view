@@ -34,7 +34,11 @@ const getStatusFromRequest = (
   currentStatus?: RequestStatus,
 ): RequestStatus => {
   let newStatus: RequestStatus = "Pending";
-  if (request.status === "error" && request.error_notes === "api retry fail") {
+  if (
+    request.status === "error" &&
+    (request.error_notes === "api retry fail" ||
+      request.error_notes === "api sent fail")
+  ) {
     newStatus = "Failed";
   } else if (request.status === "success" || request.status === "Exporting") {
     newStatus = "Retry Successful";
