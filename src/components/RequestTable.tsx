@@ -100,51 +100,66 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
   }, []);
 
   useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+    const channel = supabase.channel("requests-realtime-updates");
 
-  useEffect(() => {
-    if (!requests?.length) return;
-
-    console.log("👂 Subscribing to Realtime updates for requests...");
-
-    const channel = supabase.channel("requests-status-updates");
-
-    requests.forEach((req) => {
-      channel.on(
+    channel
+      .on(
         "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "requests",
-          filter: `request_id=eq.${req.request_id}`,
-        },
+        { event: "UPDATE", schema: "public", table: "requests" },
         (payload) => {
-          const newRequestData = payload.new as Partial<RequestData>;
-          console.log(
-            `🔔 Request ${req.request_id} status changed → ${newRequestData.status}`,
-          );
+          const updatedRequest = payload.new as RequestData;
 
-          setRequestStatuses((prev) => ({
-            ...prev,
-            [req.request_id]: getStatusFromRequest(
-              newRequestData,
-              prev[req.request_id],
-            ),
-          }));
+          // We use the functional update form to get the latest state without stale closures
+          setRequestStatuses((currentStatuses) => {
+            const isTracked = currentStatuses.hasOwnProperty(
+              updatedRequest.request_id,
+            );
+            const newUiStatus = getStatusFromRequest(
+              updatedRequest,
+              currentStatuses[updatedRequest.request_id],
+            );
+
+            // If a request is already being tracked, just update its status.
+            if (isTracked) {
+              console.log(
+                `🔔 Request ${updatedRequest.request_id} status changed → ${newUiStatus}`,
+              );
+              return {
+                ...currentStatuses,
+                [updatedRequest.request_id]: newUiStatus,
+              };
+            }
+
+            // If it's not tracked, check if it's a new failure we should start tracking.
+            if (!isTracked && newUiStatus === "Failed") {
+              console.log(
+                `✨ Newly failed request, adding to table → ${updatedRequest.request_id}`,
+              );
+              // Add the request to the table display
+              setRequests((currentRequests) => [
+                updatedRequest,
+                ...currentRequests,
+              ]);
+              // And add its status to the status map
+              return {
+                ...currentStatuses,
+                [updatedRequest.request_id]: newUiStatus,
+              };
+            }
+
+            // Otherwise, it's an update for a request we don't care about, so do nothing.
+            return currentStatuses;
+          });
         },
-      );
-    });
-
-    channel.subscribe((status) => {
-      console.log("📡 Subscription status:", status);
-    });
+      )
+      .subscribe((status) => {
+        console.log("📡 Subscription status:", status);
+      });
 
     return () => {
-      console.log("🧹 Cleaning up Realtime channel...");
       supabase.removeChannel(channel);
     };
-  }, [requests]);
+  }, []);
 
   const handleRetryAll = async () => {
     setIsRetryingAll(true);
