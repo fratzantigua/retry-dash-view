@@ -100,6 +100,10 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
   }, []);
 
   useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+
+  useEffect(() => {
     const channel = supabase.channel("requests-realtime-updates");
 
     channel
