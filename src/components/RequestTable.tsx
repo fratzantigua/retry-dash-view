@@ -104,12 +104,12 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
           event: "UPDATE",
           schema: "public",
           table: "requests",
-          filter: `request_id=in.(${requestIds.join(",")})`,
+          filter: `request_id=in.(${requestIds.map((id) => `'${id}'`).join(",")})`,
         },
         (payload) => {
           console.log("Real-time update received!", payload);
 
-          const newRecord = payload.new as RequestData;
+          const newRecord = payload.new;
           if (newRecord?.request_id) {
             const newStatus = getStatusFromRequest(newRecord);
             console.log(
@@ -122,12 +122,9 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
           }
         },
       )
-      .subscribe((status, err) => {
-        if (err) {
-          console.error("Supabase subscription error:", err);
-        }
-        console.log("Supabase subscription status:", status);
-      });
+      .subscribe((status) =>
+        console.log("Realtime subscription status:", status),
+      );
 
     // Cleanup function to remove the subscription when the component unmounts
     // or when the list of requests changes
