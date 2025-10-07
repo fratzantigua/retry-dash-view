@@ -139,9 +139,16 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
               console.log(
                 `✨ Newly failed request, adding to table → ${updatedRequest.request_id}`,
               );
+              // Ensure the request has a date before adding it
+              const requestToAdd = {
+                ...updatedRequest,
+                date:
+                  updatedRequest.date ||
+                  new Date().toLocaleString().split(",")[0],
+              };
               // Add the request to the table display
               setRequests((currentRequests) => [
-                updatedRequest,
+                requestToAdd,
                 ...currentRequests,
               ]);
               // And add its status to the status map
