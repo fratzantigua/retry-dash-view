@@ -168,6 +168,16 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
   const handleRetryAll = async () => {
     setIsRetryingAll(true);
 
+    // Immediately update UI to show "Retrying" for all requests
+    const retryingStatuses = requests.reduce(
+      (acc: { [key: string]: RequestStatus }, request) => {
+        acc[request.request_id] = "Retrying";
+        return acc;
+      },
+      {},
+    );
+    setRequestStatuses(retryingStatuses);
+
     try {
       const response = await fetch(
         "https://n8n.n-compass.online/webhook/retry-all-request",
