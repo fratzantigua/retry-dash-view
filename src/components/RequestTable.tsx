@@ -112,6 +112,9 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
           const newRecord = payload.new as RequestData;
           if (newRecord?.request_id) {
             const newStatus = getStatusFromRequest(newRecord);
+            console.log(
+              `Request ${newRecord.request_id} status updated to: ${newStatus}`,
+            );
             setRequestStatuses((prev) => ({
               ...prev,
               [newRecord.request_id]: newStatus,
