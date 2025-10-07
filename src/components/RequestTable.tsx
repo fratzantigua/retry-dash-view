@@ -107,14 +107,14 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
           filter: `request_id=eq.${req.request_id}`,
         },
         (payload) => {
-          const newStatus = payload.new?.status;
+          const newRequestData = payload.new as Partial<RequestData>;
           console.log(
-            `🔔 Request ${req.request_id} status changed → ${newStatus}`,
+            `🔔 Request ${req.request_id} status changed → ${newRequestData.status}`,
           );
 
           setRequestStatuses((prev) => ({
             ...prev,
-            [req.request_id]: newStatus,
+            [req.request_id]: getStatusFromRequest(newRequestData),
           }));
         },
       );
@@ -132,16 +132,6 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
 
   const handleRetryAll = async () => {
     setIsRetryingAll(true);
-
-    // Immediately update UI to show "Retrying" for all requests
-    const retryingStatuses = requests.reduce(
-      (acc: { [key: string]: RequestStatus }, request) => {
-        acc[request.request_id] = "Retrying";
-        return acc;
-      },
-      {},
-    );
-    setRequestStatuses(retryingStatuses);
 
     try {
       const response = await fetch(
