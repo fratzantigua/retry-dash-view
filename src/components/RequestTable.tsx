@@ -61,7 +61,8 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data = await response.json();
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : [];
       setRequests(data);
 
       const initialStatuses = data.reduce(
