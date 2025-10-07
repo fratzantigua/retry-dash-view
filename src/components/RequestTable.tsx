@@ -101,76 +101,79 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
   }, []);
 
   useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
-
-  useEffect(() => {
     const channel = supabase.channel("requests-realtime-updates");
 
-    channel
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "requests" },
-        (payload) => {
-          const updatedRequest = payload.new as RequestData;
+    const setupSubscription = () => {
+      channel
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "requests" },
+          (payload) => {
+            const updatedRequest = payload.new as RequestData;
 
-          // We use the functional update form to get the latest state without stale closures
-          setRequestStatuses((currentStatuses) => {
-            const isTracked = currentStatuses.hasOwnProperty(
-              updatedRequest.request_id,
-            );
-            const newUiStatus = getStatusFromRequest(
-              updatedRequest,
-              currentStatuses[updatedRequest.request_id],
-            );
-
-            // If a request is already being tracked, just update its status.
-            if (isTracked) {
-              console.log(
-                `🔔 Request ${updatedRequest.request_id} status changed → ${newUiStatus}`,
+            // We use the functional update form to get the latest state without stale closures
+            setRequestStatuses((currentStatuses) => {
+              const isTracked = currentStatuses.hasOwnProperty(
+                updatedRequest.request_id,
               );
-              return {
-                ...currentStatuses,
-                [updatedRequest.request_id]: newUiStatus,
-              };
-            }
-
-            // If it's not tracked, check if it's a new failure we should start tracking.
-            if (!isTracked && newUiStatus === "Failed") {
-              console.log(
-                `✨ Newly failed request, adding to table → ${updatedRequest.request_id}`,
+              const newUiStatus = getStatusFromRequest(
+                updatedRequest,
+                currentStatuses[updatedRequest.request_id],
               );
-              // Ensure the request has a date before adding it
-              const requestToAdd = {
-                ...updatedRequest,
-                date:
-                  updatedRequest.date || new Date().toISOString().split("T")[0],
-              };
-              // Add the request to the table display
-              setRequests((currentRequests) => [
-                requestToAdd,
-                ...currentRequests,
-              ]);
-              // And add its status to the status map
-              return {
-                ...currentStatuses,
-                [updatedRequest.request_id]: newUiStatus,
-              };
-            }
 
-            // Otherwise, it's an update for a request we don't care about, so do nothing.
-            return currentStatuses;
-          });
-        },
-      )
-      .subscribe((status) => {
-        console.log("📡 Subscription status:", status);
-      });
+              // If a request is already being tracked, just update its status.
+              if (isTracked) {
+                console.log(
+                  `🔔 Request ${updatedRequest.request_id} status changed → ${newUiStatus}`,
+                );
+                return {
+                  ...currentStatuses,
+                  [updatedRequest.request_id]: newUiStatus,
+                };
+              }
+
+              // If it's not tracked, check if it's a new failure we should start tracking.
+              if (!isTracked && newUiStatus === "Failed") {
+                console.log(
+                  `✨ Newly failed request, adding to table → ${updatedRequest.request_id}`,
+                );
+                // Ensure the request has a date before adding it
+                const requestToAdd = {
+                  ...updatedRequest,
+                  date:
+                    updatedRequest.date ||
+                    new Date().toISOString().split("T")[0],
+                };
+                // Add the request to the table display
+                setRequests((currentRequests) => [
+                  requestToAdd,
+                  ...currentRequests,
+                ]);
+                // And add its status to the status map
+                return {
+                  ...currentStatuses,
+                  [updatedRequest.request_id]: newUiStatus,
+                };
+              }
+
+              // Otherwise, it's an update for a request we don't care about, so do nothing.
+              return currentStatuses;
+            });
+          },
+        )
+        .subscribe((status) => {
+          console.log("📡 Subscription status:", status);
+        });
+    };
+
+    fetchRequests().then(() => {
+      setupSubscription();
+    });
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchRequests]);
 
   const handleRetryAll = async () => {
     setIsRetryingAll(true);
@@ -343,7 +346,7 @@ export const RequestTable = forwardRef<RequestTableRef>((_, ref) => {
               return (
                 <TableRow
                   key={request.request_id}
-                  className="border-border hover:bg-muted/50 transition-colors animate-fade-in"
+                  className="border-border hover:bg-muted/50 transition-colors"
                 >
                   <TableCell className="font-medium text-foreground">
                     {request.date}
